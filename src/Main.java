@@ -6,6 +6,7 @@ public class Main {
         int choice;
         Trip currentTrip = null;
         ContactManager contactManager = new ContactManager();
+        EmergencyManager emergencyManager = new EmergencyManager();
         do { 
             System.out.println("\n===== SafeRoute =====");
             System.out.println("1. Start a new trip");
@@ -143,6 +144,24 @@ public class Main {
                     }
                 }   
             } while (contactChoice != 4);
+        }
+        else if (choice == 5) {
+            String emergencyChoice; 
+            do {
+                System.out.println("\n===== Emergency Menu =====");
+                System.out.println("1. Simulate emergency alert");
+                System.out.println("2. Back to main menu");
+                System.out.print("Enter your choice: ");
+
+                emergencyChoice = scanner.nextLine();
+                if (emergencyChoice.equals("1")) {
+                    emergencyManager.sendAlert(contactManager);
+                } else if (emergencyChoice.equals("2")) {
+                    System.out.println("Returning to main menu...");
+                } else {
+                    System.out.println("Invalid choice. Try again.");
+                }
+            } while (!emergencyChoice.equals("2"));
         }
         } while (choice != 6);
         System.out.println("Thank you for using SafeRoute!");

@@ -1,3 +1,4 @@
+// save emergency contact// 
 public class EmergencyContact {
     private String name; 
     private String phoneNumber; 
