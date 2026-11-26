@@ -53,4 +53,10 @@ public class SafetyMonitor {
             return "LOW"; 
         }  
     }
+    public void resetRisk() {
+        routeRisk = 0;
+        checkInRisk = 0;
+        emergencyRisk = 0;
+        previousOffRoute = false;
+    }
 }
