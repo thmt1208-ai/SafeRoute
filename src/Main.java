@@ -7,6 +7,12 @@ public class Main {
         Trip currentTrip = null;
         ContactManager contactManager = new ContactManager();
         EmergencyManager emergencyManager = new EmergencyManager();
+        GPSSimulator gpsSimulator = null;
+        SafetyMonitor safetyMonitor = new SafetyMonitor();
+        SafetySetting safetySetting = new SafetySetting(); 
+        CheckInManager checkInManager = new CheckInManager(); 
+        int currentTime = 0;
+        boolean warningIssued = false;
         do { 
             System.out.println("\n===== SafeRoute =====");
             System.out.println("1. Start a new trip");
@@ -36,6 +42,13 @@ public class Main {
             currentTrip = new Trip(start, destination);
             currentTrip.addLocation(start);
 
+            gpsSimulator = new GPSSimulator(start);
+            safetyMonitor.resetRisk();
+            checkInManager.resetCheckIn();
+            currentTime = 0;
+            warningIssued =false;
+
+
             System.out.println("Enter route stops (type 'done' to finish): ");
 
             while (true) {
@@ -59,8 +72,46 @@ public class Main {
             String driverName = scanner.nextLine();
             Vehicle vehicle = new Vehicle(vehicleType, licensePlate, driverName);
             currentTrip.setVehicle(vehicle);
-
             System.out.println("Trip created successfully!");
+            System.out.println("Safety monitoring activated (simulation).");
+
+            String tripChoice;
+            do {
+                System.out.println("\n===== Active Trip =====");
+                System.out.println("1. Update simulated location");
+                System.out.println("2. View safety status");
+                System.out.println("3. Respond to safety check-in");
+                System.out.println("4. Simulate emergency alert");
+                System.out.println("5. End trip");
+                System.out.print("Enter your choice: ");
+
+                tripChoice = scanner.nextLine(); 
+
+                if (tripChoice.equals("1")) {
+                    System.out.print("Enter current location: ");
+                    String newLocation = scanner.nextLine();
+
+                    gpsSimulator.updateLocation(newLocation);
+                    currentTime += safetySetting.getRouteCheckInterval();
+                    safetyMonitor.updateRouteRisk(currentTrip,gpsSimulator.getCurrentLocation()); 
+
+                    System.out.println("Current location: " + gpsSimulator.getCurrentLocation());
+                    System.out.println("Elapsed time: " + currentTime + " minutes");
+                    System.out.println("Risk score: " + safetyMonitor.getRiskScore());
+                    System.out.println("Risk level: " + safetyMonitor.getRiskLevel());
+
+                    if ((safetyMonitor.getRiskScore() >= safetySetting.getWarningThreshold()) && !warningIssued && !checkInManager.isCheckInPending()) {
+                        checkInManager.requestCheckIn(currentTime, safetySetting.getCheckInTimeout());
+                        warningIssued = true; 
+                    }
+                    if (safetyMonitor.getRiskScore() < safetySetting.getWarningThreshold()) {
+                        warningIssued = false;
+                    }
+                }
+
+            } while (!tripChoice.equals("5"));
+
+
         }
         else if (choice == 2) {
             if (currentTrip == null) {
@@ -68,10 +119,10 @@ public class Main {
             } else {
             System.out.println("Start: " + currentTrip.getStartLocation());
             System.out.println("Destination: " +currentTrip.getDestination()); 
-            System.out.println("Planned route: " + currentTrip.getPlannedRoute());
-            System.out.println("Vehicle type: " + currentTrip.getVehicle().getVehicleType());
-            System.out.println("License plate: " + currentTrip.getVehicle().getLicensePlate());
-            System.out.println("Driver name: " + currentTrip.getVehicle().getDriverName());
+            System.out.println("Planned route: " +currentTrip.getPlannedRoute());
+            System.out.println("Vehicle type: " +currentTrip.getVehicle().getVehicleType());
+            System.out.println("License plate: " +currentTrip.getVehicle().getLicensePlate());
+            System.out.println("Driver name: " +currentTrip.getVehicle().getDriverName());
             }
         }
         else if (choice == 3) {
