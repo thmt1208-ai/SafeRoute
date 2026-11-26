@@ -1,11 +1,11 @@
+import java.util.concurrent.atomic.AtomicBoolean;
 public class CheckInManager {
-    private boolean checkInPending = false;
+    private final AtomicBoolean checkInPending = new AtomicBoolean(false);
     private int requestTime = 0;
     private int responseTimeout = 10;
 
     public void requestCheckIn(int currentTime, int timeout) {
-        if (!checkInPending) {
-            checkInPending = true;
+        if (checkInPending.compareAndSet(false, true)) {
             requestTime = currentTime;
             responseTimeout = timeout;
 
@@ -14,18 +14,18 @@ public class CheckInManager {
         }
     }
     public boolean isTimedOut(int currentTime) {
-        return checkInPending && currentTime - requestTime >= responseTimeout;
+        return checkInPending.get()&& currentTime - requestTime >= responseTimeout;
     }
     public void confirmSafety() {
-        checkInPending = false;
+        checkInPending.set(false);
     }
 
     public boolean isCheckInPending() {
-        return checkInPending;
+        return checkInPending.get();
     }
 
     public void resetCheckIn() {
-        checkInPending = false;
+        checkInPending.set(false);
         requestTime = 0;
     }
 }
