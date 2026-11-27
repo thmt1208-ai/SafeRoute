@@ -11,6 +11,7 @@ public class Main {
         SafetyMonitor safetyMonitor = new SafetyMonitor();
         SafetySetting safetySetting = new SafetySetting(); 
         CheckInManager checkInManager = new CheckInManager(); 
+        ArrivalManager arrivalManager = new ArrivalManager();
         int currentTime = 0;
         boolean warningIssued = false;
         do { 
@@ -45,6 +46,7 @@ public class Main {
             gpsSimulator = new GPSSimulator(start);
             safetyMonitor.resetRisk();
             checkInManager.resetCheckIn();
+            arrivalManager.stopArrivalCheck();
             currentTime = 0;
             warningIssued =false;
 
@@ -82,13 +84,35 @@ public class Main {
                 System.out.println("2. View safety status");
                 System.out.println("3. Simulate emergency alert");
                 System.out.println("4. End trip");
+
+                if (gpsSimulator.getCurrentLocation().equalsIgnoreCase(currentTrip.getDestination())) {
+                    System.out.println("Type ARRIVED to confirm safe arrival.");
+                }
+
                 if (checkInManager.isCheckInPending()) {
                     System.out.print("Enter YES, NO, or a menu choice: ");
                 } else {
                     System.out.print("Enter your choice: ");
                 }
 
-                tripChoice = scanner.nextLine().trim(); 
+                tripChoice = scanner.nextLine().trim();
+
+                if (tripChoice.equalsIgnoreCase("ARRIVED")) {
+                    if (gpsSimulator.getCurrentLocation().equalsIgnoreCase( currentTrip.getDestination())) {
+                        arrivalManager.stopArrivalCheck();
+                        checkInManager.resetCheckIn();
+                        safetyMonitor.clearArrivalRisk();
+                
+                        System.out.println("\nSafe arrival confirmed.");
+                        System.out.println("Trip completed successfully.");
+                        System.out.println("Returning to main menu...");
+                
+                        break;
+                    } else {
+                        System.out.println("You have not reached your destination.");
+                    }
+                    continue;
+                }
                 
                 if (tripChoice.equalsIgnoreCase("yes")) {
                     if (checkInManager.confirmSafety()) {
@@ -116,7 +140,34 @@ public class Main {
 
                     gpsSimulator.updateLocation(newLocation);
                     currentTime += safetySetting.getRouteCheckInterval();
-                    safetyMonitor.updateRouteRisk(currentTrip,gpsSimulator.getCurrentLocation()); 
+                    safetyMonitor.updateRouteRisk(currentTrip, gpsSimulator.getCurrentLocation()); 
+
+                    if (gpsSimulator.getCurrentLocation().equalsIgnoreCase(
+                        currentTrip.getDestination())) {
+                
+                        if (!arrivalManager.isArrivalPending()) {
+                            System.out.println("\n===== DESTINATION REACHED =====");
+                            System.out.println("Have you arrived safely?");
+                            System.out.println("Type ARRIVED to confirm.");
+                            System.out.println("Please respond within 10 seconds .");
+
+                            Runnable onArrivalTimeout = () -> {
+                                safetyMonitor.increaseArrivalRisk();
+                            
+                                System.out.println("\nArrival confirmation missed.");
+                                System.out.println("Risk score: " + safetyMonitor.getRiskScore());
+                                if (safetyMonitor.getRiskScore() >= 70) {
+                                    emergencyManager.sendAlert(contactManager);
+                                    arrivalManager.stopArrivalCheck();
+                                } else {
+                                    System.out.println("Have you arrived safely?");
+                                    System.out.println("Type ARRIVED to confirm.");
+                                }
+                            };
+                            
+                            arrivalManager.startArrivalCheck(10, onArrivalTimeout);
+                        }
+                    }
 
                     System.out.println("Current location: " + gpsSimulator.getCurrentLocation());
                     System.out.println("Elapsed time: " + currentTime + " minutes");
@@ -151,6 +202,7 @@ public class Main {
                         System.out.println("Type YES to confirm your safety.");
                         System.out.println("Type NO if you need help.");
                         System.out.println("Response timeout: "+ safetySetting.getCheckInTimeout() + " seconds (demo).");
+
                     }
 
                     if (safetyMonitor.getRiskScore() < safetySetting.getWarningThreshold()) {
@@ -170,6 +222,7 @@ public class Main {
                     System.out.println("Risk score: " + safetyMonitor.getRiskScore());
                     emergencyManager.sendAlert(contactManager);
                 } else if (tripChoice.equals("4")) {
+                    arrivalManager.stopArrivalCheck();
                     checkInManager.resetCheckIn();
                     System.out.println("Trip ended successfully.");
                     System.out.println("Returning to main menu...");
