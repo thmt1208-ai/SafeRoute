@@ -45,6 +45,7 @@ public class TripHistory {
             Scanner reader = new Scanner(file);
     
             System.out.println("\n===== Trip History =====");
+            System.out.println(""); 
     
             while (reader.hasNextLine()) {
                 System.out.println(reader.nextLine());
