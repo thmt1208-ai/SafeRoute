@@ -2,8 +2,9 @@ public class SafetyMonitor {
     private int routeRisk = 0; 
     private int checkInRisk = 0; 
     private int emergencyRisk = 0; 
+    private int arrivalRisk = 0;
     private boolean previousOffRoute = false; 
-    public boolean isOffRoute(Trip trip, String currentLocation) {
+    public synchronized boolean isOffRoute(Trip trip, String currentLocation) {
         for(String location : trip.getPlannedRoute()) {
             if (location.equalsIgnoreCase(currentLocation)) {
                 return false;
@@ -11,7 +12,7 @@ public class SafetyMonitor {
         }
         return true; 
     }
-    public void updateRouteRisk(Trip trip, String currentLocation) {
+    public synchronized void updateRouteRisk(Trip trip, String currentLocation) {
         boolean offRoute = isOffRoute(trip, currentLocation); 
 
         if (offRoute) {
@@ -27,20 +28,20 @@ public class SafetyMonitor {
         }
         previousOffRoute = offRoute;
     }
-    public void markCheckInMissed() {
+    public synchronized void markCheckInMissed() {
         checkInRisk = 30;
     }
-    public void clearCheckInRisk() {
+    public synchronized void clearCheckInRisk() {
         checkInRisk = 0;
     }
-    public void activateEmergencyRisk() {
+    public synchronized void activateEmergencyRisk() {
         emergencyRisk = 100;
     }
-    public int getRiskScore() {
-        return Math.min(100, routeRisk + checkInRisk + emergencyRisk);
+    public synchronized int getRiskScore() {
+        return Math.min(100, routeRisk + checkInRisk + emergencyRisk + arrivalRisk);
     }
 
-    public String getRiskLevel() {
+    public synchronized String getRiskLevel() {
         int score = getRiskScore(); 
 
         if (score >= 70) {
@@ -48,15 +49,22 @@ public class SafetyMonitor {
         } else if (score >= 40) {
             return "HIGH";
         } else if (score >= 10) {
-            return "Medium";
+            return "MEDIUM";
         } else {
             return "LOW"; 
         }  
     }
-    public void resetRisk() {
+    public synchronized void resetRisk() {
         routeRisk = 0;
         checkInRisk = 0;
         emergencyRisk = 0;
+        arrivalRisk = 0;
         previousOffRoute = false;
+    }
+    public synchronized void increaseArrivalRisk() {
+        arrivalRisk = Math.min(100, arrivalRisk + 20);
+    }
+    public synchronized void clearArrivalRisk() {
+        arrivalRisk = 0;
     }
 }
