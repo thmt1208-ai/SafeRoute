@@ -124,9 +124,24 @@ public class Main {
                     System.out.println("Risk level: " + safetyMonitor.getRiskLevel());
 
                     if ((safetyMonitor.getRiskScore() >= safetySetting.getWarningThreshold()) && !warningIssued && !checkInManager.isCheckInPending()) {
+                        Trip monitoredTrip = currentTrip;
+                        GPSSimulator monitoredGPS = gpsSimulator;
                         Runnable onTimeout = () -> {
                             System.out.println("\nCheck-in timeout.");
                             System.out.println("Checking GPS location again...");
+                        
+                            if (safetyMonitor.isOffRoute(monitoredTrip, monitoredGPS.getCurrentLocation())) {
+                                safetyMonitor.markCheckInMissed();
+                        
+                                System.out.println("User is still off route.");
+                                System.out.println("Risk score: " + safetyMonitor.getRiskScore());
+                        
+                                emergencyManager.sendAlert(contactManager);
+                        
+                            } else {
+                                System.out.println("User is back on the planned route.");
+                                System.out.println("No emergency alert needed.");
+                            }
                         };
                         checkInManager.requestCheckIn(currentTime, safetySetting.getCheckInTimeout(), onTimeout);
                         warningIssued = true; 
@@ -141,6 +156,25 @@ public class Main {
                     if (safetyMonitor.getRiskScore() < safetySetting.getWarningThreshold()) {
                         warningIssued = false;
                     }
+                } else if (tripChoice.equals("2")) {
+                    System.out.println("\n===== Safety Status =====");
+                    System.out.println("Current location: " + gpsSimulator.getCurrentLocation());     
+                    System.out.println("Elapsed time: " + currentTime + " minutes");        
+                    System.out.println("Risk score: " + safetyMonitor.getRiskScore());
+                    System.out.println("Risk level: " + safetyMonitor.getRiskLevel());
+                    System.out.println("Check-in pending: " + checkInManager.isCheckInPending());
+                } else if (tripChoice.equals("3")) {
+                    checkInManager.resetCheckIn();
+                    safetyMonitor.activateEmergencyRisk();
+                    System.out.println("Emergency mode activated.");
+                    System.out.println("Risk score: " + safetyMonitor.getRiskScore());
+                    emergencyManager.sendAlert(contactManager);
+                } else if (tripChoice.equals("4")) {
+                    checkInManager.resetCheckIn();
+                    System.out.println("Trip ended successfully.");
+                    System.out.println("Returning to main menu...");
+                } else {
+                    System.out.println("Invalid choice. Try again.");
                 }
 
             } while (!tripChoice.equals("4"));

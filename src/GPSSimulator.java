@@ -3,10 +3,10 @@ public class GPSSimulator {
     public GPSSimulator(String currentLocation) {
         this.currentLocation = currentLocation; 
     }
-    public void updateLocation(String location) {
-        this.currentLocation = location; 
+    public synchronized void updateLocation(String location) {
+        this.currentLocation = location;
     }
-    public String getCurrentLocation() {
-        return currentLocation; 
+    public synchronized String getCurrentLocation() {
+        return currentLocation;
     }
 }
