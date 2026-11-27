@@ -80,12 +80,35 @@ public class Main {
                 System.out.println("\n===== Active Trip =====");
                 System.out.println("1. Update simulated location");
                 System.out.println("2. View safety status");
-                System.out.println("3. Respond to safety check-in");
-                System.out.println("4. Simulate emergency alert");
-                System.out.println("5. End trip");
-                System.out.print("Enter your choice: ");
+                System.out.println("3. Simulate emergency alert");
+                System.out.println("4. End trip");
+                if (checkInManager.isCheckInPending()) {
+                    System.out.print("Enter YES, NO, or a menu choice: ");
+                } else {
+                    System.out.print("Enter your choice: ");
+                }
 
-                tripChoice = scanner.nextLine(); 
+                tripChoice = scanner.nextLine().trim(); 
+                
+                if (tripChoice.equalsIgnoreCase("yes")) {
+                    if (checkInManager.confirmSafety()) {
+                        safetyMonitor.clearCheckInRisk();
+                        System.out.println("Safety confirmed successfully.");
+                    } else {
+                        System.out.println("No active safety check-in.");
+                    }
+                    continue;
+                }
+                
+                if (tripChoice.equalsIgnoreCase("no")) {
+                    if (checkInManager.confirmSafety()) {
+                        safetyMonitor.activateEmergencyRisk();
+                        emergencyManager.sendAlert(contactManager);
+                    } else {
+                        System.out.println("No active safety check-in.");
+                    }
+                    continue;
+                }
 
                 if (tripChoice.equals("1")) {
                     System.out.print("Enter current location: ");
@@ -101,15 +124,26 @@ public class Main {
                     System.out.println("Risk level: " + safetyMonitor.getRiskLevel());
 
                     if ((safetyMonitor.getRiskScore() >= safetySetting.getWarningThreshold()) && !warningIssued && !checkInManager.isCheckInPending()) {
-                        checkInManager.requestCheckIn(currentTime, safetySetting.getCheckInTimeout());
+                        Runnable onTimeout = () -> {
+                            System.out.println("\nCheck-in timeout.");
+                            System.out.println("Checking GPS location again...");
+                        };
+                        checkInManager.requestCheckIn(currentTime, safetySetting.getCheckInTimeout(), onTimeout);
                         warningIssued = true; 
+
+                        System.out.println("\n===== SAFETY CHECK-IN =====");
+                        System.out.println("Are you safe?");
+                        System.out.println("Type YES to confirm your safety.");
+                        System.out.println("Type NO if you need help.");
+                        System.out.println("Response timeout: "+ safetySetting.getCheckInTimeout() + " seconds (demo).");
                     }
+
                     if (safetyMonitor.getRiskScore() < safetySetting.getWarningThreshold()) {
                         warningIssued = false;
                     }
                 }
 
-            } while (!tripChoice.equals("5"));
+            } while (!tripChoice.equals("4"));
 
 
         }
