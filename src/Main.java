@@ -12,8 +12,10 @@ public class Main {
         SafetySetting safetySetting = new SafetySetting(); 
         CheckInManager checkInManager = new CheckInManager(); 
         ArrivalManager arrivalManager = new ArrivalManager();
+        TripHistory tripHistory = new TripHistory();
         int currentTime = 0;
         boolean warningIssued = false;
+        boolean arrivalStarted = false;
         do { 
             System.out.println("\n===== SafeRoute =====");
             System.out.println("1. Start a new trip");
@@ -21,7 +23,8 @@ public class Main {
             System.out.println("3. Manage emergency contacts");
             System.out.println("4. View trip history");
             System.out.println("5. Emergency menu");
-            System.out.println("6. Exit");
+            System.out.println("6. Safety settings");
+            System.out.println("7. Exit");
             System.out.print("Enter your choice: ");
             try {
                 choice = scanner.nextInt();
@@ -49,6 +52,7 @@ public class Main {
             arrivalManager.stopArrivalCheck();
             currentTime = 0;
             warningIssued =false;
+            arrivalStarted = false;
 
 
             System.out.println("Enter route stops (type 'done' to finish): ");
@@ -102,7 +106,9 @@ public class Main {
                         arrivalManager.stopArrivalCheck();
                         checkInManager.resetCheckIn();
                         safetyMonitor.clearArrivalRisk();
-                
+
+                        tripHistory.saveTrip(currentTrip, "Completed", currentTime);
+
                         System.out.println("\nSafe arrival confirmed.");
                         System.out.println("Trip completed successfully.");
                         System.out.println("Returning to main menu...");
@@ -142,10 +148,9 @@ public class Main {
                     currentTime += safetySetting.getRouteCheckInterval();
                     safetyMonitor.updateRouteRisk(currentTrip, gpsSimulator.getCurrentLocation()); 
 
-                    if (gpsSimulator.getCurrentLocation().equalsIgnoreCase(
-                        currentTrip.getDestination())) {
-                
-                        if (!arrivalManager.isArrivalPending()) {
+                    if (gpsSimulator.getCurrentLocation().equalsIgnoreCase(currentTrip.getDestination())) {
+                        if (!arrivalStarted) {
+                            arrivalStarted = true;
                             System.out.println("\n===== DESTINATION REACHED =====");
                             System.out.println("Have you arrived safely?");
                             System.out.println("Type ARRIVED to confirm.");
@@ -166,6 +171,9 @@ public class Main {
                             };
                             
                             arrivalManager.startArrivalCheck(10, onArrivalTimeout);
+                        }
+                        else { 
+                            arrivalManager.stopArrivalCheck();
                         }
                     }
 
@@ -224,6 +232,7 @@ public class Main {
                 } else if (tripChoice.equals("4")) {
                     arrivalManager.stopArrivalCheck();
                     checkInManager.resetCheckIn();
+                    tripHistory.saveTrip(currentTrip, "Ended manually", currentTime);
                     System.out.println("Trip ended successfully.");
                     System.out.println("Returning to main menu...");
                 } else {
@@ -317,6 +326,9 @@ public class Main {
                 }   
             } while (contactChoice != 4);
         }
+        else if (choice == 4) {
+            tripHistory.viewHistory();
+        }
         else if (choice == 5) {
             String emergencyChoice; 
             do {
@@ -335,7 +347,45 @@ public class Main {
                 }
             } while (!emergencyChoice.equals("2"));
         }
-        } while (choice != 6);
+        else if (choice == 6) {
+            String settingChoice;
+            do {
+                System.out.println("\n===== Safety Settings =====");
+                System.out.println("Current response timeout: " + safetySetting.getCheckInTimeout() + " minutes");
+                System.out.println("1. Change response timeout");
+                System.out.println("2. Back to main menu");
+                System.out.print("Enter your choice: ");
+
+                settingChoice = scanner.nextLine().trim();
+                if (settingChoice.equals("1")) {
+                    while (true) {
+                        System.out.println("Available timeouts: 5, 10, 15, 20 minutes");
+                        System.out.print("Enter response timeout: ");
+                    
+                        try {
+                            int time = scanner.nextInt();
+                            scanner.nextLine();
+
+                            if (safetySetting.setCheckInTimeout(time)) {
+                                System.out.println("Response timeout updated successfully.");
+                                break;
+                            } else {
+                                System.out.println("Invalid timeout. Try again.");
+                            }
+                        } catch (InputMismatchException e) {
+                            System.out.println("Invalid input. Please enter a number.");
+                            scanner.nextLine();
+
+                        }
+                    }
+                } else if (settingChoice.equals("2")) {
+                    System.out.println("Returning to main menu...");
+                } else {
+                    System.out.println("Invalid choice. Try again.");
+                }
+            } while (!settingChoice.equals("2"));
+        }
+        } while (choice != 7);
         System.out.println("Thank you for using SafeRoute!");
         scanner.close();
     }
